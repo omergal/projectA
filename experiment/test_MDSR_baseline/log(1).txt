@@ -1,0 +1,7 @@
+
+Evaluation:
+[SR on myImage x2]	PSNR: 0.000 (Best: 0.000 from epoch 1)
+[SR on myImage x3]	PSNR: 0.000 (Best: 0.000 from epoch 1)
+[SR on myImage x4]	PSNR: 0.000 (Best: 0.000 from epoch 1)
+Time: 0.88s
+
