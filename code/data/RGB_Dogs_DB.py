@@ -10,18 +10,17 @@ import scipy.misc as misc
 import torch
 import torch.utils.data as data
 
-class DIV2K(data.Dataset):
+class RGB_Dogs_DB(data.Dataset):
     def __init__(self, args, train=True):
         self._init_basic(args, train)
 
         split = 'train'
-        dir_HR = 'DIV2K_{}_HR'.format(split)
-        dir_LR = 'DIV2K_{}_LR_bicubic'.format(split)
+        dir_HR = '{}_HR'.format(split)
+        dir_LR = '{}_LR'.format(split)
         x_scale = ['X{}'.format(s) for s in args.scale]
 
         if self.args.ext != 'pack':
-            self.dir_in = [
-                os.path.join(self.apath, dir_LR, xs) for xs in x_scale]
+            self.dir_in = os.path.join(self.apath, dir_LR)
             self.dir_tar = os.path.join(self.apath, dir_HR)
         else:
             print('Preparing binary packages...')
@@ -45,14 +44,23 @@ class DIV2K(data.Dataset):
                         os.path.join(self.apath, dir_LR, xs, 'packv.pt'))
 
     def __getitem__(self, idx):
-        scale = self.scale[self.idx_scale]
+        #scale = self.scale[self.idx_scale]
+        scale = 1
         idx = self._get_index(idx)
         img_in, img_tar = self._load_file(idx)
+        # print("img_in ", img_in)
+        # print("idx ", idx)
         img_in, img_tar, pi, ai = self._get_patch(img_in, img_tar)
         img_in, img_tar = common.set_channel(
             img_in, img_tar, self.args.n_colors)
 
-        return common.np2Tensor(img_in, img_tar, self.args.rgb_range)
+        try:
+            retVal = common.np2Tensor(img_in, img_tar, self.args.rgb_range)
+            prevRetVal = retVal
+        except:
+            print("failed to common.np2Tensor. idx is: ", idx)
+
+        return retVal
 
     def __len__(self):
         if self.train:
@@ -63,18 +71,19 @@ class DIV2K(data.Dataset):
     def _init_basic(self, args, train):
         self.args = args
         self.train = train
-        self.scale = args.scale
+        #self.scale = args.scale
+        self.scale = 1
         self.idx_scale = 0
 
         self.repeat = args.test_every // (args.n_train // args.batch_size)
 
-        if args.ext == 'png':
-            self.apath = args.dir_data + '/DIV2K'
-            self.ext = '.png'
+        if args.ext == 'jpg':
+            self.apath = args.dir_data + '/RGB_Dogs_DB'
+            self.ext = '.jpg'
         else:
-            self.apath = args.dir_data + '/DIV2K_decoded'
+            # never reach here.
+            self.apath = args.dir_data + '/Grayscale_DB_decoded'
             self.ext = '.pt'
-
     def _get_index(self, idx):
         if self.train:
             idx = (idx % self.args.n_train) + 1
@@ -85,17 +94,18 @@ class DIV2K(data.Dataset):
 
     def _load_file(self, idx):
         def _get_filename():
-            filename = '{:0>4}'.format(idx)
-            name_in = '{}/{}x{}{}'.format(
-                self.dir_in[self.idx_scale],
-                filename,
-                self.scale[self.idx_scale],
-                self.ext)
+            filename = '{:0>5}'.format(idx)
+            #name_in = '{}/{}x{}{}'.format(
+            #    self.dir_in[self.idx_scale],
+            #    filename,
+            #    self.scale[self.idx_scale],
+            #    self.ext)
+            name_in = os.path.join(self.dir_in, filename + self.ext)
             name_tar = os.path.join(self.dir_tar, filename + self.ext)
 
             return name_in, name_tar
 
-        if self.args.ext == 'png':
+        if self.args.ext == 'jpg':
             name_in, name_tar = _get_filename()
             img_in = misc.imread(name_in)
             img_tar = misc.imread(name_tar)
@@ -110,7 +120,8 @@ class DIV2K(data.Dataset):
         return img_in, img_tar
 
     def _get_patch(self, img_in, img_tar):
-        scale = self.scale[self.idx_scale]
+        #scale = self.scale[self.idx_scale]
+        scale = 1
         if self.train:
             img_in, img_tar, pi = common.get_patch(
                 img_in, img_tar, self.args, scale)
